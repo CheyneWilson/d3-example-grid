@@ -1,35 +1,38 @@
 <!doctype html>
 <html lang="en" xmlns="http://www.w3.org/1999/html">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link >
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link>
     <title>Vite + TS</title>
-  </head>
-  <body>
-    <div class="main">
+</head>
+<body>
+<div class="main">
     <h1>A basic D3 grid</h1>
-    <p>This article is part of a small series involving inversive geometry and the Peaucellier–Lipkin linkage.
-       Here we will illustrate how to create a grid using D3. The resulting is shown below.</p>
+    <p>In this article we will illustrate how to create a graph with gridlines using D3.
+        This is part of a small series which culminates in the creation of a Peaucellier–Lipkin linkage.
+        An example of the graph we are creating is shown below.</p>
     <div id="graph_example"></div>
     <script type="module" src="/src/main.ts"></script>
 
     <h1>Layout concepts</h1>
-    <p>The total area is referred to as a graph or diagram. Within this area is a plot surrounded by margins.
-        The axes are drawn in the margin area. Points, lines and other shapes can be drawn in the plot area.
+    <p>
+        The total area is referred to as the graph or diagram. Within this area is a sub region for the plot
+        which is surrounded by margins. The axes are drawn in the margin area. Points, lines and other shapes can be
+        drawn in the plot area.
     </p>
 
 
     <div class="example_layout">
-      <span class="margin-label">Margins</span>
-      <div class="margin">
+        <span class="margin-label">Margins</span>
+        <div class="margin">
             <span class="plot-label">Plot</span>
-            <div class="point">&#8226;<span class="label">a point</span> </div>
-      </div>
+            <div class="point">&#8226;<span class="label">a point</span></div>
+        </div>
 
     </div>
-        <p>First create a couple of simple types to describe the layout.</p>
-        <pre><code class="language-typescript">type Area = {
+    <p>To build this, we first create a couple of simple types to describe the above layout.</p>
+    <pre><code class="language-typescript">type Area = {
     width: number,
     height: number
 }
@@ -46,21 +49,27 @@ type Point2 = {
     y: number
 }
 </code></pre>
-<p>
-    The dimensions of the plot can be calculated as follows:
-</p>
-        <pre><code class="language-typescript">function plotArea(graphDimensions: Area, margin: Margin): Area {
+    <p>There is a high degree of coupling between the margins, plot and surrounding graph.
+        In a more versatile library we could set the layout to be specified using different combinations of parameters,
+        but
+        in this case we have chosen to make the plot region dependent on the <code>Graph</code> <code>Area</code> and
+        <code>Margins</code>.
+        The dimensions of the plot region are calculated as follows:</p>
+    <pre><code class="language-typescript">function plotArea(graphDimensions: Area, margin: Margin): Area {
     return {
         width: graphDimensions.width - margin.left - margin.right,
         height: graphDimensions.height - margin.top - margin.bottom
     }
 }</code></pre>
-
-    <p> Instead of using pixels, the plot uses its own internal coordinate system. These coordinates are known as
-        unit-coordinates. The min and max points of the <code>PlotConfig</code>g enable a conversion and mapping between
-        the unit-coordinates used by the plot and the pixel-coordinates used by the containing graph.
+    <p> The plot has its own internal coordinate system. These coordinates are known as
+        unit-coordinates, with each grid square equal to one unit. The min and max points of the
+        <code>PlotConfig</code> control which region is visible in the plot. This enables the origin of the
+        graph to be located at a point other than <code>(0, 0)</code>.
+        The <code>resolution</code> corresponds to the number of pixels per unit-length.
     </p>
-        <pre><code class="language-typescript">/** The Plot Config represents the plot region of the graph */
+    <pre><code class="language-typescript">/**
+ * The PlotConfig configures the plot region of the graph.
+ */
 class PlotConfig {
     min: Point2        // The coordinates of the bottom left corner (in unit-coordinates)
     max: Point2        // The coordinates of the top right corner (in unit-coordinates)
@@ -92,41 +101,43 @@ class PlotConfig {
         return this.unitWidth() * this.resolution
     }
 }</code></pre>
-<p>There are many ways to determine the size of the plot, margins, and graph. In this example, we have chosen to
-    construct graph with fixed dimensions. Consequently, the values shown on the plot depend on the resolution and
-    the space allowed within the margins. From these parameters we can create the <code>PlotConfig</code>.
-    <br>
-    <br>
-    The use of the <code>Math.floor</code> function causes the plot width and height to be integer values.
-    If not accounted for, this manipulation would distort the grid squares and shapes drawn to the plot. Squares would not
-    be square, and circles would be squeezed into ovals.
-    <br>
-    <br>
-</p>
+    <p>There are many ways to determine the size of the plot, margins, and graph. In this example, we have chosen to
+        construct <code>Graph</code> with fixed dimensions. Consequently, the plot region shown depends
+        on the resolution and the space allowed within the margins. From these parameters we determine the <code>PlotConfig</code>.
+        <br>
+        <br>
+        The use of the <code>Math.floor</code> function causes the plot <code>width</code> and <code>height</code> to be
+        integer values.
+        If not accounted for, this manipulation would distort the grid squares and shapes drawn to the plot. Squares
+        would not be square, and circles would be squeezed into ovals which would be a problem.
+        <br>
+        <br>
+        The size of the margins are adjusted to ensure that the plot area plus margins sum to the total
+        area of the containing graph. The size of the <code>margin.top</code> and <code>margin.right</code> are
+        increased because this maintains the original alignment while correcting any distortion.
+    </p>
     <pre><code class="language-typescript">function createPlotConfig(min: Point2, resolution: number, plotDimensions: Area): PlotConfig {
     let x = min.x + Math.floor((plotDimensions.width) / resolution)
     let y = min.y + Math.floor((plotDimensions.height) / resolution)
     let max = {x, y}
     return new PlotConfig(min, max, resolution)
-}</code></pre>
-        <p>
-            The size of the margins are adjusted to ensure that the plot area plus margins sum to the total
-            area of the containing graph. The size of the <code>margin.top</code> and <code>margin.right</code> are increased because this maintains
-            the original alignment while correcting any distortion.
-        </p>
-        <pre><code class="language-typescript">function recalculateMargins(graphArea: Area, plot: PlotConfig, margin: Margin): Margin {
+}
+
+function recalculateMargins(graphArea: Area, plot: PlotConfig, margin: Margin): Margin {
     return {
         ...margin,
         top: graphArea.height - plot.height() - margin.bottom,
         right: graphArea.width - plot.width() - margin.left
     }
 }</code></pre>
-        <p>
-            At this point, we have covered how the different regions are determined.
-            The <code>GraphConfig</code> contains exactly what its name implies.
-            And the <code>Graph</code> type contains this config along with the SVG Element which is the Graph.
-        </p>
-        <pre><code class="language-typescript">
+    <p>
+        At this stage, we have covered how the size of the different regions are determined.
+        The <code>GraphConfig</code> contains exactly what its name implies.
+        The <code>Graph</code> type extends this with an <code>SVGSVGElement</code> for the actual graph.
+        It also includes methods for converting back and forth between unit-coordinates used within the plot
+        and pixel-coordinates which often used when interacting with the containing SVG.
+    </p>
+    <pre><code class="language-typescript">
 type GraphConfig = {
     width: number,
     height: number,
@@ -136,11 +147,40 @@ type GraphConfig = {
 
 type Graph = GraphConfig & {
     svg: SVGSVGElement
+    /**
+     * Transform the coordinates of a point within the plot area to the pixel location on the Graph.
+     *
+     * @param point The coordinates of a point in plot-coordinates
+     * @return      The pixel location of this point on the SVG
+     */
+    toPixelCoords: (point: Point2) => Point2
+
+    /**
+     * Transform a pixel location on the Graph to coordinates within the plot area.
+     *
+     * @param point The pixel location of this point on the SVG
+     * @return      The coordinates of a point in plot-coordinates
+     */
+    fromPixelCoords: (point: Point2) => Point2
+}
+
+function toPixelCoords(context: Graph, point: Point2): Point2 {
+    let px = context.margin.left + point.x * context.plot.resolution;
+    let py = context.height - context.margin.bottom - point.y * context.plot.resolution;
+    return {x: px, y: py}
+}
+
+function fromPixelCoords(context: Graph, point: Point2): Point2 {
+    let ux = (point.x - context.margin.left) / context.plot.resolution;
+    let uy = (-point.y + context.height - context.margin.bottom) / context.plot.resolution;
+    return {x: ux, y: uy}
 }</code></pre>
-        <p>
-            Now that the key structures and functions have been defined, the next step is to create the <code class="language-typescript">GraphConfig</code>.
-        </p>
-        <pre><code class="language-typescript">function createGraphConfig(width: number, height: number, resolution: number, margin: Margin): GraphConfig {
+    <p>
+        The next step is to create the <code>GraphConfig</code> by combining everything together.
+        We have chosen to hard-code the <code>bottomLeftCoords</code>, but this could be exposed in the
+        future to make the origin configurable.
+    </p>
+    <pre><code class="language-typescript">function createGraphConfig(width: number, height: number, resolution: number, margin: Margin): GraphConfig {
     let graphDimensions = {width, height}
     let plot = plotArea(graphDimensions, margin)
 
@@ -156,12 +196,11 @@ type Graph = GraphConfig & {
         plot: plotConfig,
     }
 }</code></pre>
-        <p>
-            The <code>createGraph</code> function will be the main way in which a new graph is created. It takes in a couple of
-            params, the width and height, margins, and resolution and is able to calculate the rest. From the graph
-            config, the <code>createSVG</code> function is able to do the rest. We're going explain the parts this function next.
-        </p>
-        <pre><code class="language-typescript">const DEFAULT_MARGIN: Margin = {
+    <p>
+        The <code>createGraph</code> function is the main way in which a new graph is created.
+        It takes in a couple of params, the width and height, margins, and resolution and calculates the rest.
+    </p>
+    <pre><code class="language-typescript">const DEFAULT_MARGIN: Margin = {
     top: 20,
     bottom: 20,
     left: 30,
@@ -174,16 +213,33 @@ function createGraph(width: number, height: number, resolution: number = 36, mar
 
     return {
         ...config,
-        svg
+        svg,
+        toPixelCoords(point: Point2) {
+            return toPixelCoords(this, point)
+        },
+        fromPixelCoords(point: Point2) {
+            return fromPixelCoords(this, point)
+        }
     }
 }</code></pre>
-        <p>
-            The <code>xAxis</code> and <code>yAxis</code> functions are used to construct both the axes and also the grid lines.
-            They perform a linear mapping between the unit-coordinates of the plot and the pixel-coordinates.
-            They also ensure that the plot area is constrained within the margins.
-        </p>
-        <pre><code class="language-typescript">
-function xAxis(config: GraphConfig): d3.Axis&lt;d3.NumberValue&gt; {
+    <p>
+        The <code>xAxis</code> and <code>yAxis</code> functions are used to construct both the axes and also the grid
+        lines. They perform a linear mapping between the unit-coordinates of the plot and the pixel-coordinates.
+        They also ensure that the plot area is constrained within the margins.
+        <br>
+        <br>
+        The <code>createSVG</code> function creates a graph of the specified dimensions.
+        The heavy lifting for the creating the x-axis is done by the <code>xAxis</code> function and
+        the y-axis is constructed similarly. The transforms shown below are used to place the axes in the correct
+        locations.
+        <br>
+        <br>
+        The <code>xAxis</code> function is reused to draw the vertical gridlines.
+        By default, at each interval there is a 6px tick mark drawn.
+        The <code>tickSize</code> is set to the negative plot height to create the grid-lines.
+        This same technique is used to create the x-gridlines.
+    </p>
+    <pre><code class="language-typescript">function xAxis(config: GraphConfig): d3.Axis&lt;d3.NumberValue&gt; {
     return d3.axisBottom(d3.scaleLinear()
         .domain([config.plot.min.x, config.plot.max.x])
         .range([config.margin.left, config.width - config.margin.right])
@@ -195,19 +251,9 @@ function yAxis(config: GraphConfig): d3.Axis&lt;d3.NumberValue&gt; {
         .domain([config.plot.min.y, config.plot.max.y])
         .range([config.height - config.margin.bottom, config.margin.top])
     ).ticks(config.plot.unitHeight())
-}</code></pre>
-        <p>
-            The <code>createSVG</code> function creates a graph of the specified dimensions.
-            The heavy lifting for the creating the x-axis is done by the <code>xAxis</code> function and
-            the y-axis is constructed similarly. The transforms shown below are used to place the axes in the correct locations.
-            <br>
-            <br>
-            The <code>xAxis</code> function is reused to draw the vertical gridlines.
-            By default, at each interval there is a 6px tick mark drawn.
-            The <code>tickSize</code> is set to the negative plot height to create the grid-lines.
-            This same technique is used to create the x-gridlines.
-        </p>
-        <pre><code>function createSVG(config: GraphConfig): SVGSVGElement {
+}
+
+function createSVG(config: GraphConfig): SVGSVGElement {
     const svg = d3.create("svg")
         .attr("width", config.width)
         .attr("height", config.height);
@@ -245,16 +291,16 @@ function yAxis(config: GraphConfig): d3.Axis&lt;d3.NumberValue&gt; {
     return svg.node()!
 }</code></pre>
     <p>
-        And that is that! To conclude, we create a new graph as follows:
+        And that is that! To conclude, we can now create a new graph as follows:
     </p>
-        <pre><code>let diagram = createGraph(640, 400)
+    <pre><code>let diagram = createGraph(640, 400)
 let example_01 = document.querySelector&lt;HTMLDivElement&gt;('#graph_example')!
 example_01.append(diagram.svg);</code></pre>
-        <div id="graph_example_2"></div>
-<!--        <p>-->
-<!--            TODO: Next in the series is -->
-<!--            TODO: Source link in Git -->
-<!--        </p>-->
-    </div>
-  </body>
+    <div id="graph_example_2"></div>
+    <!--        <p>-->
+    <!--            TODO: Next in the series is -->
+    <!--            TODO: Source link in Git -->
+    <!--        </p>-->
+</div>
+</body>
 </html>

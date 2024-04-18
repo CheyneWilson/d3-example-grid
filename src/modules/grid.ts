@@ -63,6 +63,21 @@ type GraphConfig = {
 
 type Graph = GraphConfig & {
     svg: SVGSVGElement
+    /**
+     * Transform the coordinates of a point within the plot area to the pixel location on the Graph.
+     *
+     * @param point The coordinates of a point in plot-coordinates
+     * @return      The pixel location of this point on the SVG
+     */
+    toPixelCoords: (point: Point2) => Point2
+
+    /**
+     * Transform a pixel location on the Graph to coordinates within the plot area.
+     *
+     * @param point The pixel location of this point on the SVG
+     * @return      The coordinates of a point in plot-coordinates
+     */
+    fromPixelCoords: (point: Point2) => Point2
 }
 
 /**
@@ -153,7 +168,13 @@ function createGraph(width: number, height: number, resolution: number = 36, mar
 
     return {
         ...config,
-        svg
+        svg,
+        toPixelCoords(point: Point2) {
+            return toPixelCoords(this, point)
+        },
+        fromPixelCoords(point: Point2) {
+            return fromPixelCoords(this, point)
+        }
     }
 }
 
@@ -216,13 +237,6 @@ function createSVG(config: GraphConfig): SVGSVGElement {
     return svg.node()!
 }
 
-/**
- * Transform a point from grid coordinates to pixel coordinates
- *
- * @param context
- * @param point the location of a point with grid coordinates
- * @return The pixel location of this point on the SVG
- */
 function toPixelCoords(context: Graph, point: Point2): Point2 {
     let px = context.margin.left + point.x * context.plot.resolution;
     let py = context.height - context.margin.bottom - point.y * context.plot.resolution;
@@ -231,16 +245,11 @@ function toPixelCoords(context: Graph, point: Point2): Point2 {
 
 function fromPixelCoords(context: Graph, point: Point2): Point2 {
     let ux = (point.x - context.margin.left) / context.plot.resolution;
-    let uy = (-point.y + context.height - context.margin.bottom  )/ context.plot.resolution;
+    let uy = (-point.y + context.height - context.margin.bottom) / context.plot.resolution;
     return {x: ux, y: uy}
 }
 
-
-export {
-    toPixelCoords,
-    fromPixelCoords,
-    createGraph,
-}
+export {createGraph}
 
 export type {
     Margin,

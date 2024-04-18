@@ -1,6 +1,6 @@
 import './style.css'
 import './vendor/highlightjs/11.9.0/styles/default.min.css'
-import {createGraph} from "./modules/grid.ts";
+import {createGraph} from "./modules/grid";
 
 import hljs from 'highlight.js/lib/core';
 import typescript from 'highlight.js/lib/languages/typescript';
