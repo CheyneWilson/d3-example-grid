@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "postinstall": "tsc"
+    "postinstall": "tsc || true"
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
