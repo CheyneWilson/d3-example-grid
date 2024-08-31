@@ -5,4 +5,9 @@
 
 ### Features
 
-* Substancial Refactor ([9e0dec4](https://github.com/CheyneWilson/d3-example-grid/commit/9e0dec434429d192b128fdb1c3d145aa0e89d8be))
+A substancial refactor of the first iteration. Major changes include:
+
+* Rename PlotConfig to PlotWindow
+* Change PlotWindow to decouple it from the `xAxis` and `yAxis` functions
+* Simplify how PlotWindow is constructed
+* Update index.html to reflect changes
