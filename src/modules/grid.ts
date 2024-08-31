@@ -19,37 +19,68 @@ type Point2 = {
 
 
 /**
- * The Plot Config represents the plot region of the graph
+ * The PlotWindow is the region of the Graph which contains the plot.
+ * It uses its own internal (unit) coordinate system which is independent of the containing element.
  */
-class PlotConfig {
-    min: Point2        // The coordinates of the bottom left corner (in unit-coordinates)
-    max: Point2        // The coordinates of the top right corner (in unit-coordinates)
-    resolution: number // The number of pixel per unit-length of the plot
+interface PlotWindow {
+    unitHeight(): number
+    unitWidth(): number
+    unitRangeX(): Array<number>
+    unitRangeY(): Array<number>
+    height(): number
+    width(): number
+    resolution(): number
+}
 
-    constructor(min: Point2, max: Point2, resolution: number) {
-        this.min = min
-        this.max = max
-        this.resolution = resolution
+
+// TODO: We could add alternative methods for sizing the plot/graph such as FlexiblePlotWindow which also resizes the
+//       containing graph when the plot area is changed. We have no use case for this at the moment but could consider
+//       it if we wanted more advanced graphing capabilities.
+class FixedSizePlotWindow implements PlotWindow {
+    _area: Area
+    _bottomLeft: Point2 // Unit coordinates
+    _resolution: number // The number of pixel per unit-length of the plot
+
+    constructor(area: Area, bottomLeft: Point2,  resolution: number) {
+        this._area = area
+        this._resolution = resolution
+        this._bottomLeft = bottomLeft
     }
 
-    /** The unit height of the plot. */
+    /** The number of plot units shown vertically. */
     public unitHeight(): number {
-        return this.max.y - this.min.y
+        return this._area.height / this._resolution
     }
 
-    /** The unit width of the plot. */
+    /** The number of plot units shown horizontally. */
     public unitWidth(): number {
-        return this.max.x - this.min.x
+        return this._area.width / this._resolution
     }
 
     /** The height of the plot in pixels. */
     public height(): number {
-        return this.unitHeight() * this.resolution
+        return this._area.height
     }
 
     /** The width of the plot in pixels. */
     public width(): number {
-        return this.unitWidth() * this.resolution
+        return this._area.width
+    }
+
+    public unitRangeX(): [number, number] {
+        let min = this._bottomLeft.x
+        let max = this._bottomLeft.x + this._area.width / this._resolution
+        return [min, max]
+    }
+
+    public unitRangeY():  [number, number] {
+        let min = this._bottomLeft.y
+        let max = this._bottomLeft.y + this._area.height / this._resolution
+        return [min, max]
+    }
+
+    public resolution(): number {
+        return this._resolution
     }
 }
 
@@ -58,8 +89,9 @@ type GraphConfig = {
     width: number,
     height: number,
     margin: Margin,
-    plot: PlotConfig
+    plot: PlotWindow
 }
+
 
 type Graph = GraphConfig & {
     svg: SVGSVGElement
@@ -80,6 +112,7 @@ type Graph = GraphConfig & {
     fromPixelCoords: (point: Point2) => Point2
 }
 
+
 /**
  * Calculate the dimensions of the plot within the graph
  *
@@ -93,40 +126,24 @@ function plotArea(graphDimensions: Area, margin: Margin): Area {
     }
 }
 
-/**
- * Generate the plot config (dimensions / coordinates)
- *
- * @param min            The coordinates of the bottom left corner of the plot (in units)
- * @param resolution     The number of pixels per unit length
- * @param plotDimensions The size of the plot area in pixel
- */
-// TODO: We could add different functions for calculating these properties
-//       E.g. take the in the centre-point to derive the min and max points
-function createPlotConfig(min: Point2, resolution: number, plotDimensions: Area): PlotConfig {
-    let x = min.x + Math.floor((plotDimensions.width) / resolution)
-    let y = min.y + Math.floor((plotDimensions.height) / resolution)
-    let max = {x, y}
-    return new PlotConfig(min, max, resolution)
-}
 
 /**
  * Increase the top/right margins so that the margins plus the plot cover the total graph area
  *
- * Typically called in conjunction with createPlotConfig.
+ * Typically called in conjunction with createPlotWindow.
  *
  * @param graphArea The total area of the graph
  * @param plot      The configuration for the plot region of a graph
  * @param margin    The initial bounding margins of the plot
  */
-// TODO: We could add alternative methods for sizing the plot/graph, such as expanding the graph or shrinking the plot
-//       but we have no use case for them with the current use-cases.
-function recalculateMargins(graphArea: Area, plot: PlotConfig, margin: Margin): Margin {
+function recalculateMargins(graphArea: Area, plot: PlotWindow, margin: Margin): Margin {
     return {
         ...margin,
         top: graphArea.height - plot.height() - margin.bottom,
         right: graphArea.width - plot.width() - margin.left
     }
 }
+
 
 const DEFAULT_MARGIN: Margin = {
     top: 20,
@@ -147,20 +164,28 @@ const DEFAULT_MARGIN: Margin = {
  */
 function createGraphConfig(width: number, height: number, resolution: number, margin: Margin): GraphConfig {
     let graphDimensions = {width, height}
-    let plot = plotArea(graphDimensions, margin)
+    let dimensions = plotArea(graphDimensions, margin)
+
+    // Shrink the plot area to be an integer number of units - it looks better
+    dimensions = {
+        width: Math.trunc(dimensions.width / resolution) * resolution,
+        height: Math.trunc(dimensions.height / resolution) * resolution
+    }
 
     let bottomLeftCoords = {x: 0, y: 0}
-    let plotConfig = createPlotConfig(bottomLeftCoords, resolution, plot)
+    let plotWindow = new FixedSizePlotWindow(dimensions, bottomLeftCoords, resolution)
 
-    let newMargin = recalculateMargins(graphDimensions, plotConfig, margin)
+    // Grow the margins to offset the change in plot dimensions
+    let newMargin = recalculateMargins(graphDimensions, plotWindow, margin)
 
     return {
         width,
         height,
         margin: newMargin,
-        plot: plotConfig,
+        plot: plotWindow,
     }
 }
+
 
 function createGraph(width: number, height: number, resolution: number = 36, margin: Margin = DEFAULT_MARGIN): Graph {
     let config = createGraphConfig(width, height, resolution, margin)
@@ -182,7 +207,7 @@ function createGraph(width: number, height: number, resolution: number = 36, mar
 // A linear mapping from unit coordinates (the domain) to pixel coordinates for the xAxis
 function xAxis(config: GraphConfig): d3.Axis<d3.NumberValue> {
     return d3.axisBottom(d3.scaleLinear()
-        .domain([config.plot.min.x, config.plot.max.x])
+        .domain(config.plot.unitRangeX())
         .range([config.margin.left, config.width - config.margin.right])
     ).ticks(config.plot.unitWidth())
 }
@@ -190,7 +215,7 @@ function xAxis(config: GraphConfig): d3.Axis<d3.NumberValue> {
 // A linear mapping from unit coordinates (the domain) to pixel coordinates for the yAxis
 function yAxis(config: GraphConfig): d3.Axis<d3.NumberValue> {
     return d3.axisLeft(d3.scaleLinear()
-        .domain([config.plot.min.y, config.plot.max.y])
+        .domain(config.plot.unitRangeY())
         .range([config.height - config.margin.bottom, config.margin.top])
     ).ticks(config.plot.unitHeight())
 }
@@ -238,14 +263,14 @@ function createSVG(config: GraphConfig): SVGSVGElement {
 }
 
 function toPixelCoords(context: Graph, point: Point2): Point2 {
-    let px = context.margin.left + point.x * context.plot.resolution;
-    let py = context.height - context.margin.bottom - point.y * context.plot.resolution;
+    let px = context.margin.left + point.x * context.plot.resolution();
+    let py = context.height - context.margin.bottom - point.y * context.plot.resolution();
     return {x: px, y: py}
 }
 
 function fromPixelCoords(context: Graph, point: Point2): Point2 {
-    let ux = (point.x - context.margin.left) / context.plot.resolution;
-    let uy = (-point.y + context.height - context.margin.bottom) / context.plot.resolution;
+    let ux = (point.x - context.margin.left) / context.plot.resolution();
+    let uy = (-point.y + context.height - context.margin.bottom) / context.plot.resolution();
     return {x: ux, y: uy}
 }
 
@@ -254,5 +279,7 @@ export {createGraph}
 export type {
     Margin,
     Graph,
+    PlotWindow,
+    Area,
     Point2
 }

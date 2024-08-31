@@ -1,6 +1,6 @@
 # D3 Graph / Grid
 
-This repository contains an example of creating a grid using [d3](https://d3js.org/).
+This repository contains an example of creating a cartesian grid using [d3](https://d3js.org/).
 
 
 ## Dev Setup
