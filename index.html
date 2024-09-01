@@ -29,8 +29,8 @@
             <span class="plot-label">Plot region</span>
             <div class="point">&#8226;<span class="label">a point</span></div>
         </div>
-
     </div>
+
     <p>To implement this, we first create a couple of simple types to describe the above layout.</p>
     <pre><code class="language-typescript">type Area = {
     width: number,
@@ -64,7 +64,7 @@ type Point2 = {
 }</code></pre>
     <p> The plot has its own internal coordinate system. These coordinates are known as
         unit-coordinates, with each grid square equal to one unit. The min and max points of the
-        <code>PlotConfig</code> control which region is visible in the plot. This enables the origin of the
+        <code>PlotWindow</code> control which region is visible in the plot. This enables the origin of the
         graph to be located at a point other than <code>(0, 0)</code>.
         The <code>resolution</code> corresponds to the number of pixels per unit-length.
         <br>
@@ -198,7 +198,7 @@ function recalculateMargins(graphArea: Area, plot: PlotWindow, margin: Margin): 
     }
 }</code></pre>
     <p>
-        At this stage, we have covered how the size of the different regions are determined.
+        At this stage we have covered how the size of the different regions are determined.
 
         The <code>Graph</code> type extends this with an <code>SVGSVGElement</code> for the actual graph.
         It also includes methods for converting back and forth between unit-coordinates used within the plot
@@ -283,7 +283,7 @@ function createGraphConfig(width: number, height: number, resolution: number, ma
 
     <h2>Displaying the Graph using D3</h2>
     <p>
-        We are now display the <code>Graph</code>.
+        We are now ready to display the <code>Graph</code>.
         The <code>xAxis</code> and <code>yAxis</code> functions are used to construct both the axes and also the grid
         lines. They perform a linear mapping between the unit-coordinates of the plot and the pixel-coordinates.
         They also ensure that the plot area is constrained within the margins.
