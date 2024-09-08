@@ -1,13 +1,12 @@
 {
-  "name": "d3-example-grid",
+  "name": "@cheynewilson/d3-example-grid",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview",
-    "postinstall": "tsc || true"
+    "preview": "vite preview"
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
@@ -23,5 +22,6 @@
   },
   "files": [
     "/dist"
-  ]
+  ],
+  "packageManager": "yarn@4.4.1"
 }
