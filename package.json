@@ -18,7 +18,12 @@
     "highlight.js": "^11.9.0"
   },
   "exports": {
-    ".": "./dist/grid.js"
+    ".": {
+      "import": {
+        "types": "./dist/grid.d.ts",
+        "default": "./dist/grid.js"
+      }
+    }
   },
   "files": [
     "/dist"
