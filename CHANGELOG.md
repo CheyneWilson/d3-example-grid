@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/CheyneWilson/d3-example-grid/compare/v1.0.1...v1.1.0) (2024-09-09)
+
+
+### Miscellaneous Chores
+
+* release 1.1.0 ([859043b](https://github.com/CheyneWilson/d3-example-grid/commit/859043b4934e3aaef57725b5c97a5f3936a84f1a))
+
 ## [1.0.1](https://github.com/CheyneWilson/d3-example-grid/compare/v1.0.0...v1.0.1) (2024-09-08)
 
 
